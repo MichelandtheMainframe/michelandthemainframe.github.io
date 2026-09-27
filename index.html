@@ -7,10 +7,14 @@
 <meta name="description" content="NEON, the new album by Michel &amp; the Mainframe. Release date: 1st October 2026.">
 <meta property="og:title" content="NEON — Michel & the Mainframe">
 <meta property="og:description" content="System initializing… Release date: 1st October 2026.">
-<meta property="og:image" content="poster.jpg">
+<meta property="og:image" content="https://michelandthemainframe.github.io/cover.jpg">
 <meta property="og:type" content="music.album">
+<meta property="og:url" content="https://michelandthemainframe.github.io/">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://michelandthemainframe.github.io/cover.jpg">
 <meta name="theme-color" content="#050505">
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
 <style>
   html, body { margin: 0; height: 100%; background: #050505; overflow: hidden; }
   body { display: flex; align-items: center; justify-content: center; }
@@ -32,8 +36,8 @@
   <button id="sound" type="button">&gt; SOUND ON_</button>
 <script>
   const v = document.getElementById('v'), b = document.getElementById('sound');
-  const HOLD = 13.3; // last frame with the full text, before the fade
-  v.addEventListener('ended', () => { v.currentTime = HOLD; v.pause(); b.textContent = '> REPLAY_'; b.dataset.mode = 'replay'; b.classList.remove('hide'); });
+  const HOLD = 13.3;
+  v.addEventListener('ended', () => { v.currentTime = HOLD; v.pause(); b.textContent = '> REPLAY_'; b.classList.remove('hide'); });
   b.addEventListener('click', () => {
     v.muted = false;
     v.currentTime = 0;
