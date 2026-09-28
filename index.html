@@ -15,19 +15,10 @@
 <meta name="theme-color" content="#050505">
 <link rel="icon" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
-<link rel="preload" as="image" href="cover.jpg">
 <style>
   html, body { margin: 0; height: 100%; background: #050505; overflow: hidden; }
   .stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
   video { width: 100vw; height: 100vh; object-fit: contain; display: block; background: #050505; }
-  #cover {
-    width: min(88vw, 82vh); height: auto; aspect-ratio: 1; display: block;
-    box-shadow: 0 0 80px rgba(160, 90, 255, .35), 0 0 12px rgba(0,0,0,.8);
-    transform: scale(.97); transition: transform 3s ease;
-  }
-  #coverStage { opacity: 0; pointer-events: none; transition: opacity 2s ease; background: #050505; }
-  #coverStage.show { opacity: 1; }
-  #coverStage.show #cover { transform: scale(1); }
   #sound {
     position: fixed; right: 18px; bottom: 18px; z-index: 5;
     font: 600 13px/1 Menlo, Consolas, "DejaVu Sans Mono", monospace; letter-spacing: .08em;
@@ -40,41 +31,22 @@
 </head>
 <body>
   <div class="stage">
-    <video id="v" src="neon.mp4" poster="poster.jpg" autoplay muted playsinline preload="auto"
+    <video id="v" src="teaser.mp4" poster="poster.jpg" autoplay muted playsinline preload="auto"
            aria-label="NEON by Michel & the Mainframe. Release date: 1st October 2026."></video>
   </div>
-  <div class="stage" id="coverStage">
-    <img id="cover" src="cover.jpg" alt="NEON by Michel & the Mainframe — album cover">
-  </div>
-  <audio id="snip" src="snippet.mp3" preload="auto"></audio>
   <button id="sound" type="button">&gt; SOUND ON_</button>
 <script>
-  const v = document.getElementById('v'), b = document.getElementById('sound'),
-        stage = document.getElementById('coverStage'), a = document.getElementById('snip');
-  const REVEAL_AT = 12.86;
-  let soundOn = false, revealed = false;
-
-  function reveal() {
-    if (revealed) return;
-    revealed = true;
-    stage.classList.add('show');
-    setTimeout(() => v.pause(), 2100);
-    b.textContent = soundOn ? '> REPLAY_' : '> SOUND ON_';
+  const v = document.getElementById('v'), b = document.getElementById('sound');
+  const HOLD = 30.5;
+  v.addEventListener('ended', () => {
+    v.currentTime = HOLD; v.pause();
+    b.textContent = v.muted ? '> SOUND ON_' : '> REPLAY_';
     b.classList.remove('hide');
-  }
-
-  v.addEventListener('timeupdate', () => { if (v.currentTime >= REVEAL_AT) reveal(); });
-  v.addEventListener('ended', reveal);
-
+  });
   b.addEventListener('click', () => {
-    soundOn = true;
-    revealed = false;
-    stage.classList.remove('show');
     v.muted = false;
     v.currentTime = 0;
-    a.pause(); a.currentTime = 0;
     v.play();
-    a.play().catch(() => {});
     b.classList.add('hide');
   });
 </script>
