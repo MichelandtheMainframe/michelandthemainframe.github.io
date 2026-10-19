@@ -54,6 +54,11 @@
   #sound { position: absolute; right: 18px; bottom: 18px; z-index: 5; }
   #sound.hide { opacity: 0; pointer-events: none; }
   #skip { position: absolute; left: 18px; bottom: 18px; z-index: 5; }
+  #skip.pulse { animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 rgba(120, 255, 200, 0); }
+    50% { box-shadow: 0 0 18px rgba(120, 255, 200, .55); border-color: var(--mint); }
+  }
 
   /* ---------- 2. Console ---------- */
   .console {
@@ -158,6 +163,7 @@
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     .btn.primary::after { animation: none; }
+    #skip.pulse { animation: none; }
   }
 </style>
 </head>
@@ -253,7 +259,32 @@
     v.load();
     b.textContent = v.muted ? '> SOUND ON_' : '> REPLAY_';
     b.classList.remove('hide');
+    document.getElementById('skip').classList.add('pulse');
+    startAttract();
   });
+
+  // Attract mode: once the teaser has played, flip between the picture and
+  // the album every 15 seconds, like a shop-window display. The first scroll,
+  // tap, click or key press from the visitor stops it for good.
+  const FLIP = 15000;
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let attract = null, userHasControl = false;
+  function stopAttract() { userHasControl = true; clearTimeout(attract); }
+  ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(e =>
+    addEventListener(e, stopAttract, { passive: true, once: true }));
+  function flip(toAlbum) {
+    if (userHasControl) return;
+    const top = toAlbum ? document.getElementById('listen').offsetTop : 0;
+    scrollTo({ top, behavior: 'smooth' });
+    attract = setTimeout(() => flip(!toAlbum), FLIP);
+  }
+  function startAttract() {
+    if (userHasControl || calm || attract !== null) return;
+    attract = setTimeout(() => flip(true), FLIP);
+  }
+  // If the browser refuses to autoplay the teaser, start the display anyway.
+  v.addEventListener('error', startAttract);
+  setTimeout(() => { if (v.paused && v.currentTime === 0) startAttract(); }, 5000);
   b.addEventListener('click', () => {
     b.classList.add('hide');
     v.muted = false;
