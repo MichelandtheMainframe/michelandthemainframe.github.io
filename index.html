@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NEON — Michel &amp; the Mainframe</title>
-<meta name="description" content="NEON, the debut album by Michel &amp; the Mainframe. 19 tracks of dance music made with AI. Out now on all streaming services.">
+<meta name="description" content="NEON, the debut album by Michel &amp; the Mainframe. 19 tracks of dance music made with AI. Out now on all streaming services. Next: Feel the Hook (Michel's Remix), 21 October.">
 <link rel="canonical" href="https://michelandthemainframe.com/">
 <meta property="og:title" content="NEON — Michel &amp; the Mainframe">
 <meta property="og:description" content="System online. NEON is out now: 19 tracks of dance music made with AI and zero pretending otherwise.">
@@ -104,6 +104,24 @@
   @keyframes blink { 50% { opacity: 0; } }
   .note { margin: 0; font-size: 13px; color: var(--mint-dim); letter-spacing: .03em; }
 
+  /* ---------- 2b. Next transmission (single) ---------- */
+  .next {
+    display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 24px; align-items: center;
+    margin: clamp(40px, 6vw, 72px) 0 0; padding: 22px 24px;
+    background: var(--panel); border: 1px solid rgba(255, 79, 210, .35); border-radius: 8px;
+    box-shadow: 0 0 40px rgba(255, 79, 210, .08);
+  }
+  .next img { display: block; width: 100%; height: auto; aspect-ratio: 1; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
+  .next h2 { margin: 0 0 6px; font: 700 13px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--pink); }
+  .next h2::before { content: "// "; }
+  .next .title { margin: 0 0 4px; font: 700 clamp(22px, 3.4vw, 32px)/1.15 var(--mono); color: #d6fff0; }
+  .next .when { margin: 0 0 14px; color: var(--mint-dim); letter-spacing: .06em; text-transform: uppercase; font-size: 14px; }
+  .next .actions { margin: 0; }
+  @media (max-width: 760px) {
+    .next { grid-template-columns: 1fr; }
+    .next img { max-width: 240px; }
+  }
+
   /* ---------- 3. About + contact ---------- */
   .panels {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;
@@ -177,6 +195,19 @@
         </div>
       </section>
 
+      <!-- 2b. Next transmission: the single -->
+      <section class="next" id="next" aria-labelledby="next-h">
+        <img src="hook.jpg" width="1024" height="1024" alt="Feel the Hook (Michel's Remix) cover: a fish hook resting on a spinning record in a server room.">
+        <div>
+          <h2 id="next-h">Next transmission</h2>
+          <p class="title">Feel the Hook <span style="color:var(--mint-dim)">(Michel's Remix)</span></p>
+          <p class="when">Out Wednesday 21 October &middot; all streaming services</p>
+          <div class="actions">
+            <a class="btn ghost" href="https://youtu.be/-a-5p_Nkf5s" target="_blank" rel="noopener">Watch the countdown</a>
+          </div>
+        </div>
+      </section>
+
       <div class="panels">
         <section class="panel" aria-labelledby="about">
           <h2 id="about">About</h2>
@@ -191,6 +222,7 @@
             <li><span>Email</span><a href="mailto:michelandthemainframe@gmail.com">michelandthemainframe@gmail.com</a></li>
             <li><span>Spotify</span><a href="https://open.spotify.com/artist/0VzRoVDcHXj6UuzHo2DjLT" target="_blank" rel="noopener">Michel &amp; the Mainframe</a></li>
             <li><span>YouTube Music</span><a href="https://music.youtube.com/playlist?list=OLAK5uy_nJcn3ggfslGdmwTOqHDvkc3R3x-OR-yis" target="_blank" rel="noopener">NEON, the album</a></li>
+            <li><span>YouTube</span><a href="https://www.youtube.com/@MichelAndTheMainframe" target="_blank" rel="noopener">@MichelAndTheMainframe</a></li>
             <li><span>TikTok</span><a href="https://www.tiktok.com/@michelandthemainframe" target="_blank" rel="noopener">@michelandthemainframe</a></li>
             <li><span>Suno</span><a href="https://suno.com/@michelandthemainframe" target="_blank" rel="noopener">@michelandthemainframe</a></li>
           </ul>
@@ -208,16 +240,23 @@
 <script>
   const v = document.getElementById('v'), b = document.getElementById('sound');
   const HOLD = 30.5;
+  // Seek while paused, and only play once the seek has landed: seeking and
+  // playing in the same tick makes Safari scrub visibly backwards.
+  function seekThen(t, after) {
+    v.pause();
+    const done = () => { v.removeEventListener('seeked', done); if (after) after(); };
+    v.addEventListener('seeked', done);
+    v.currentTime = t;
+  }
   v.addEventListener('ended', () => {
-    v.currentTime = HOLD; v.pause();
+    seekThen(HOLD);
     b.textContent = v.muted ? '> SOUND ON_' : '> REPLAY_';
     b.classList.remove('hide');
   });
   b.addEventListener('click', () => {
-    v.muted = false;
-    v.currentTime = 0;
-    v.play();
     b.classList.add('hide');
+    v.muted = false;
+    seekThen(0, () => v.play());
   });
 </script>
 </body>
