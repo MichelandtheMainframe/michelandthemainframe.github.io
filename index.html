@@ -239,7 +239,6 @@
 
 <script>
   const v = document.getElementById('v'), b = document.getElementById('sound');
-  const HOLD = 30.5;
   // Seek while paused, and only play once the seek has landed: seeking and
   // playing in the same tick makes Safari scrub visibly backwards.
   function seekThen(t, after) {
@@ -249,7 +248,9 @@
     v.currentTime = t;
   }
   v.addEventListener('ended', () => {
-    seekThen(HOLD);
+    // Settle on the poster image (not a video frame) once the teaser ends.
+    v.removeAttribute('autoplay');
+    v.load();
     b.textContent = v.muted ? '> SOUND ON_' : '> REPLAY_';
     b.classList.remove('hide');
   });
