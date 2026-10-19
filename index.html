@@ -16,6 +16,12 @@
 <meta name="theme-color" content="#050505">
 <link rel="icon" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
+<script>
+  // Runs before anything is drawn: always open on the teaser, never on a
+  // remembered scroll position or a #listen left in the address.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  if (location.hash === '#listen') history.replaceState(null, '', location.pathname + location.search);
+</script>
 <style>
   :root {
     --bg: #050505;
@@ -28,7 +34,6 @@
     --mono: Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
   body {
     margin: 0; background: var(--bg); color: var(--mint);
     font: 500 16px/1.7 var(--mono);
@@ -256,6 +261,14 @@
 
 <script>
   const v = document.getElementById('v'), b = document.getElementById('sound');
+  // Belt and braces for the head script: snap (not glide) to the top now,
+  // and again after Safari's own scroll restore, if it still does one.
+  scrollTo(0, 0);
+  addEventListener('pageshow', () => scrollTo(0, 0));
+  document.getElementById('skip').addEventListener('click', e => {
+    e.preventDefault();   // glide down without putting #listen in the address
+    document.getElementById('listen').scrollIntoView({ behavior: 'smooth' });
+  });
   // Seek while paused, and only play once the seek has landed: seeking and
   // playing in the same tick makes Safari scrub visibly backwards.
   function seekThen(t, after) {
@@ -284,9 +297,20 @@
   const FLIP = 15000;
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let attract = null, userHasControl = false;
-  function stopAttract() { userHasControl = true; clearTimeout(attract); }
-  ['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(e =>
-    addEventListener(e, stopAttract, { passive: true, once: true }));
+  const USER_EVENTS = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+  function stopAttract() {
+    userHasControl = true; clearTimeout(attract);
+    USER_EVENTS.forEach(e => removeEventListener(e, onUser));
+  }
+  function onUser(e) {
+    // Watching the teaser (SOUND ON / REPLAY) isn't leaving the display,
+    // and neither are shortcut keys such as Option+Cmd+R.
+    if (e.target.closest && e.target.closest('#sound')) return;
+    if (e.type === 'keydown' && (e.metaKey || e.ctrlKey || e.altKey ||
+        ['Meta', 'Control', 'Alt', 'Shift'].includes(e.key))) return;
+    stopAttract();
+  }
+  USER_EVENTS.forEach(e => addEventListener(e, onUser, { passive: true }));
   function flip(toAlbum) {
     if (userHasControl) return;
     const top = toAlbum ? document.getElementById('listen').offsetTop : 0;
@@ -301,6 +325,8 @@
   v.addEventListener('error', startAttract);
   setTimeout(() => { if (v.paused && v.currentTime === 0) startAttract(); }, 5000);
   b.addEventListener('click', () => {
+    clearTimeout(attract); attract = null;   // hold the display while the teaser replays
+    scrollTo({ top: 0, behavior: 'smooth' });
     stage.classList.remove('rest');
     b.classList.add('hide');
     v.muted = false;
