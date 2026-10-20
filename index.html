@@ -16,12 +16,6 @@
 <meta name="theme-color" content="#050505">
 <link rel="icon" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
-<script>
-  // Runs before anything is drawn: always open on the teaser, never on a
-  // remembered scroll position or a #listen left in the address.
-  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  if (location.hash === '#listen') history.replaceState(null, '', location.pathname + location.search);
-</script>
 <style>
   :root {
     --bg: #050505;
@@ -34,6 +28,7 @@
     --mono: Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0; background: var(--bg); color: var(--mint);
     font: 500 16px/1.7 var(--mono);
@@ -49,16 +44,6 @@
     background: var(--bg); overflow: hidden;
   }
   .stage video { width: 100%; height: 100%; object-fit: contain; display: block; background: var(--bg); }
-  /* The resting picture after the teaser: a plain image laid over the video,
-     faded in only once fully decoded (Safari's own video poster can render
-     cropped or half-loaded). */
-  .stage video, .stage .still { transition: opacity .9s ease; }
-  .stage .still {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: contain; opacity: 0; pointer-events: none;
-  }
-  .stage.rest .still { opacity: 1; }
-  .stage.rest video { opacity: 0; }
   .chip {
     font: 600 13px/1 var(--mono); letter-spacing: .08em; text-decoration: none;
     color: var(--mint); background: rgba(0, 0, 0, .55);
@@ -69,11 +54,6 @@
   #sound { position: absolute; right: 18px; bottom: 18px; z-index: 5; }
   #sound.hide { opacity: 0; pointer-events: none; }
   #skip { position: absolute; left: 18px; bottom: 18px; z-index: 5; }
-  #skip.pulse { animation: pulse 2.4s ease-in-out infinite; }
-  @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 rgba(120, 255, 200, 0); }
-    50% { box-shadow: 0 0 18px rgba(120, 255, 200, .55); border-color: var(--mint); }
-  }
 
   /* ---------- 2. Console ---------- */
   .console {
@@ -178,7 +158,6 @@
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     .btn.primary::after { animation: none; }
-    #skip.pulse { animation: none; }
   }
 </style>
 </head>
@@ -188,7 +167,6 @@
   <div class="stage">
     <video id="v" src="teaser.mp4" poster="poster.jpg" autoplay muted playsinline preload="auto"
            aria-label="NEON by Michel &amp; the Mainframe. Teaser video."></video>
-    <img class="still" id="still" src="poster.jpg" alt="" aria-hidden="true" decoding="async">
     <a id="skip" class="chip" href="#listen">&gt; LISTEN NOW &darr;</a>
     <button id="sound" class="chip" type="button">&gt; SOUND ON_</button>
   </div>
@@ -225,6 +203,7 @@
           <p class="title">Feel the Hook <span style="color:var(--mint-dim)">(Michel's Remix)</span></p>
           <p class="when">Out Wednesday 21 October &middot; all streaming services</p>
           <div class="actions">
+            <a class="btn primary" href="https://open.spotify.com/album/7Gf5SWuVEKmi0KWDw8j4xp" target="_blank" rel="noopener">Listen on Spotify</a>
             <a class="btn ghost" href="https://youtu.be/-a-5p_Nkf5s" target="_blank" rel="noopener">Watch the countdown</a>
           </div>
         </div>
@@ -246,7 +225,7 @@
             <li><span>YouTube Music</span><a href="https://music.youtube.com/playlist?list=OLAK5uy_nJcn3ggfslGdmwTOqHDvkc3R3x-OR-yis" target="_blank" rel="noopener">NEON, the album</a></li>
             <li><span>YouTube</span><a href="https://www.youtube.com/@MichelAndTheMainframe" target="_blank" rel="noopener">@MichelAndTheMainframe</a></li>
             <li><span>TikTok</span><a href="https://www.tiktok.com/@michelthemainframe" target="_blank" rel="noopener">@michelthemainframe</a></li>
-            <li><span>Suno</span><a href="https://suno.com/@michelandthemainframe" target="_blank" rel="noopener">@michelandthemainframe</a></li>
+            <li><span>Suno</span><a href="https://suno.com/@michelandthemainframe" target="_blank" rel="noopener">@michelthemainframe</a></li>
           </ul>
         </section>
       </div>
@@ -261,14 +240,7 @@
 
 <script>
   const v = document.getElementById('v'), b = document.getElementById('sound');
-  // Belt and braces for the head script: snap (not glide) to the top now,
-  // and again after Safari's own scroll restore, if it still does one.
-  scrollTo(0, 0);
-  addEventListener('pageshow', () => scrollTo(0, 0));
-  document.getElementById('skip').addEventListener('click', e => {
-    e.preventDefault();   // glide down without putting #listen in the address
-    document.getElementById('listen').scrollIntoView({ behavior: 'smooth' });
-  });
+  const HOLD = 30.5;
   // Seek while paused, and only play once the seek has landed: seeking and
   // playing in the same tick makes Safari scrub visibly backwards.
   function seekThen(t, after) {
@@ -277,57 +249,12 @@
     v.addEventListener('seeked', done);
     v.currentTime = t;
   }
-  const stage = document.querySelector('.stage'), still = document.getElementById('still');
-  // Fade to the resting picture, but only once it is fully decoded.
-  function rest() {
-    const show = () => stage.classList.add('rest');
-    if (still.decode) still.decode().then(show, () => {}); else show();
-  }
   v.addEventListener('ended', () => {
-    rest();
+    seekThen(HOLD);
     b.textContent = v.muted ? '> SOUND ON_' : '> REPLAY_';
     b.classList.remove('hide');
-    document.getElementById('skip').classList.add('pulse');
-    startAttract();
   });
-
-  // Attract mode: once the teaser has played, flip between the picture and
-  // the album every 15 seconds, like a shop-window display. The first scroll,
-  // tap, click or key press from the visitor stops it for good.
-  const FLIP = 15000;
-  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let attract = null, userHasControl = false;
-  const USER_EVENTS = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
-  function stopAttract() {
-    userHasControl = true; clearTimeout(attract);
-    USER_EVENTS.forEach(e => removeEventListener(e, onUser));
-  }
-  function onUser(e) {
-    // Watching the teaser (SOUND ON / REPLAY) isn't leaving the display,
-    // and neither are shortcut keys such as Option+Cmd+R.
-    if (e.target.closest && e.target.closest('#sound')) return;
-    if (e.type === 'keydown' && (e.metaKey || e.ctrlKey || e.altKey ||
-        ['Meta', 'Control', 'Alt', 'Shift'].includes(e.key))) return;
-    stopAttract();
-  }
-  USER_EVENTS.forEach(e => addEventListener(e, onUser, { passive: true }));
-  function flip(toAlbum) {
-    if (userHasControl) return;
-    const top = toAlbum ? document.getElementById('listen').offsetTop : 0;
-    scrollTo({ top, behavior: 'smooth' });
-    attract = setTimeout(() => flip(!toAlbum), FLIP);
-  }
-  function startAttract() {
-    if (userHasControl || calm || attract !== null) return;
-    attract = setTimeout(() => flip(true), FLIP);
-  }
-  // If the browser refuses to autoplay the teaser, start the display anyway.
-  v.addEventListener('error', startAttract);
-  setTimeout(() => { if (v.paused && v.currentTime === 0) startAttract(); }, 5000);
   b.addEventListener('click', () => {
-    clearTimeout(attract); attract = null;   // hold the display while the teaser replays
-    scrollTo({ top: 0, behavior: 'smooth' });
-    stage.classList.remove('rest');
     b.classList.add('hide');
     v.muted = false;
     seekThen(0, () => v.play());
